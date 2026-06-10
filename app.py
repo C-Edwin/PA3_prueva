@@ -184,7 +184,6 @@ with tab3:
     st.plotly_chart(fig_keys, use_container_width=True)
 
 st.markdown("---")
-
 # -------------------------------------------------------------
 # 5 VISUALIZACIONES CON VALOR AGREGADO
 # -------------------------------------------------------------
@@ -244,4 +243,72 @@ with v_tab3:
     st.markdown("""
     <div class="value-box">
         <b>💡 VALOR AGREGADO:</b> Revela el mapa de poder institucional. 
+        Permite identificar de un vistazo qué universidades, centros de investigación o países están liderando la financiación y la producción científica en la intersección de IA y educación en software.
+    </div>
+    """, unsafe_allow_html=True)
 
+with v_tab4:
+    top_5_sources = df_filtrado["Source title"].value_counts().head(5).index.tolist()
+    df_box = df_filtrado[df_filtrado["Source title"].isin(top_5_sources)].copy()
+    
+    fig_box = px.box(
+        df_box, x="Source title", y="Cited by", color="Source title",
+        title="Dispersión y Variabilidad de Citaciones en los Canales Principales"
+    )
+    st.plotly_chart(fig_box, use_container_width=True)
+    
+    st.markdown("""
+    <div class="value-box">
+        <b>💡 VALOR AGREGADO:</b> Muestra la consistencia del impacto científico. 
+        A diferencia de los promedios simples, el gráfico de cajas expone si el prestigio de un canal de publicación es constante y distribuido, o si depende exclusivamente de un único artículo hiper-citado.
+    </div>
+    """, unsafe_allow_html=True)
+
+with v_tab5:
+    top_keys = df_filtrado["Author Keywords"].dropna().str.split(";").explode().str.strip().value_counts().head(8).index.tolist()
+    df_exploded = df_filtrado.dropna(subset=["Author Keywords"]).copy()
+    df_exploded["Keyword"] = df_exploded["Author Keywords"].str.split(";")
+    df_exploded = df_exploded.explode("Keyword")
+    df_exploded["Keyword"] = df_exploded["Keyword"].str.strip()
+    df_exploded = df_exploded[df_exploded["Keyword"].isin(top_keys)]
+    
+    fig_cross = px.histogram(
+        df_exploded, x="Keyword", color="Document Type", barmode="stack",
+        title="Intersección y Enfoque Temático según el Tipo de Documento"
+    )
+    st.plotly_chart(fig_cross, use_container_width=True)
+    
+    st.markdown("""
+    <div class="value-box">
+        <b>💡 VALOR AGREGADO:</b> Descubre el enfoque de las metodologías científicas. 
+        Permite correlacionar si ciertos conceptos clave (como 'Academic Performance') se discuten más en artículos conceptuales de revista o en experimentos prácticos publicados en actas de congresos.
+    </div>
+    """, unsafe_allow_html=True)
+
+# Explorador General de la Tabla Completa
+st.subheader("📋 Vista Global e Interactiva del Dataset completo")
+st.dataframe(df_filtrado, use_container_width=True)
+
+st.markdown("---")
+
+# -------------------------------------------------------------
+# HALLAZGOS Y CONCLUSIONES
+# -------------------------------------------------------------
+st.subheader("📌 Principales Hallazgos Académicos")
+st.markdown("""
+<div style="background-color: #0F172A; padding: 20px; border-radius: 8px; border-left: 5px solid #FF4B4B;">
+    <ul style="color: #E2E8F0; font-size: 16px; line-height: 1.6;">
+        <li>🚀 <b>Crecimiento Exponencial:</b> La producción científica enfocada en ChatGPT y educación en ingeniería de software ha estallado verticalmente en el periodo analizado.</li>
+        <li>💡 <b>Foco Pedagógico:</b> Las palabras clave y agrupamientos revelan que el debate científico no solo se centra en el plagio, sino en cómo usar LLMs como tutores personalizados de programación 24/7.</li>
+        <li>🎓 <b>Transformación de Roles:</b> Se evidencia un marcado interés por medir la competencia de resolución de problemas en estudiantes de primeros ciclos (CS1) asistidos por IA.</li>
+    </ul>
+</div>
+""", unsafe_allow_html=True)
+
+# Pie de página del Proyecto
+st.markdown("<br>", unsafe_allow_html=True)
+col_pie1, col_pie2 = st.columns(2)
+with col_pie1:
+    st.markdown("**Desarrollado por:** Grupo 1")
+with col_pie2:
+    st.markdown("<div style='text-align: right;'><i>Entregable Académico - Fundamentos de Machine Learning</i></div>", unsafe_allow_html=True)
