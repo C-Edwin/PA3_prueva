@@ -162,7 +162,7 @@ if len(df_ml) >= 5:
     for i in range(num_clusters):
         indices_cluster = np.where(df_ml['Cluster'] == i)
         
-        if len(indices_cluster)[0] > 0:
+        if len(indices_cluster) > 0:
             promedio_tfidf = np.asarray(X[indices_cluster].mean(axis=0)).ravel()
             top_indices_palabras = promedio_tfidf.argsort()[-4:][::-1]
             palabras_top = [palabras_features[idx] for idx in top_indices_palabras]
@@ -192,7 +192,7 @@ if len(df_ml) >= 5:
     st.plotly_chart(fig_cluster, use_container_width=True)
     
     # Explorador de los clusters
-    with st.expander("🔍 Explorar artículos clasificados por la Inteligencia Artificial"):
+    with st.expander("🔍 Explorar artículos classified por la Inteligencia Artificial"):
         cluster_ver = st.selectbox("Selecciona un eje temático para inspeccionar:", sorted(df_ml['Cluster Name'].unique()))
         articulos_en_cluster = df_ml[df_ml['Cluster Name'] == cluster_ver][['Title', 'Source title', 'Year', 'Cited by']].head(8)
         st.dataframe(articulos_en_cluster, use_container_width=True)
@@ -202,7 +202,7 @@ else:
 st.markdown("---")
 
 # -------------------------------------------------------------
-# VISUALIZACIÓN BIBLIOMÉTRICA ORIGINAL
+# VISUALIZACIÓN BIBLIOMÉTRICA ORIGINAL (Estructura Blindada contra Indentación)
 # -------------------------------------------------------------
 st.header("📈 Análisis de Tendencias Básicas e Impacto")
 
@@ -236,12 +236,10 @@ with tab2:
         st.plotly_chart(fig_fuentes, use_container_width=True)
 
 with tab3:
-    col_t3_1, col_t3_2 = st.columns(2)
-    with col_t3_1:
-        autores = df_filtrado["Authors"].dropna().str.split(";").explode().str.strip().value_counts().head(10).reset_index()
-        autores.columns = ["Autor", "Publicaciones"]
-        fig_autores = px.bar(autores, x="Publicaciones", y="Autor", orientation='h', title="Top 10 Autores más Productivos del Corpus")
-        fig_autores.update_yaxes(autorange="reversed")
-        st.plotly_chart(fig_autores, use_container_width=True)
-    with col_t3_2:
-
+    # Se eliminan sub-columnas para evitar fallos de sangrado en servidores remotos
+    autores = df_filtrado["Authors"].dropna().str.split(";").explode().str.strip().value_counts().head(10).reset_index()
+    autores.columns = ["Autor", "Publicaciones"]
+    fig_autores = px.bar(autores, x="Publicaciones", y="Autor", orientation='h', title="Top 10 Autores más Productivos del Corpus")
+    fig_autores.update_yaxes(autorange="reversed")
+    st.plotly_chart(fig_autores, use_container_width=True)
+    
