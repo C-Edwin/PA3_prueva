@@ -1,8 +1,6 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.cluster import KMeans
 import plotly.express as px
 
 # Configuración de la página
@@ -69,7 +67,7 @@ st.markdown("""
 
 # Título Principal
 st.markdown('<div class="main-title">🤖 ChatGPT & Aprendizaje de Programación</div>', unsafe_allow_html=True)
-st.caption("Análisis bibliométrico y Machine Learning • Scopus • Grupo 1")
+st.caption("Análisis bibliométrico avanzado • Scopus • Grupo 1")
 
 # Pregunta de Investigación con Alto Contraste
 st.markdown("""
@@ -137,72 +135,7 @@ col4.metric("Tipos de Fuente", df_filtrado["Source title"].nunique())
 st.markdown("---")
 
 # -------------------------------------------------------------
-# SECCIÓN DE MACHINE LEARNING (Clustering + Extractor Automático)
-# -------------------------------------------------------------
-st.header("🧠 Módulo de Machine Learning: Agrupamiento Temático (Clustering)")
-st.write("Aplicamos un modelo no supervisado **K-Means** sobre los resúmenes (`Abstract`) para descubrir los frentes de investigación ocultos.")
-
-# Limpieza rápida de nulos en Abstract
-df_ml = df_filtrado.dropna(subset=['Abstract', 'Title']).copy()
-
-if len(df_ml) >= 5:
-    num_clusters = st.slider("Selecciona el número de clusters (temas a descubrir)", min_value=2, max_value=5, value=3)
-    
-    # Pipeline de Machine Learning
-    vectorizer = TfidfVectorizer(stop_words='english', max_features=500)
-    X = vectorizer.fit_transform(df_ml['Abstract'])
-    
-    kmeans = KMeans(n_clusters=num_clusters, random_state=42, n_init=10)
-    df_ml['Cluster'] = kmeans.fit_predict(X)
-    
-    # Descubrir palabras clave por cada grupo automáticamente
-    palabras_features = vectorizer.get_feature_names_out()
-    nombres_clusters = {}
-    
-    for i in range(num_clusters):
-        indices_cluster = np.where(df_ml['Cluster'] == i)
-        
-        if len(indices_cluster) > 0:
-            promedio_tfidf = np.asarray(X[indices_cluster].mean(axis=0)).ravel()
-            top_indices_palabras = promedio_tfidf.argsort()[-4:][::-1]
-            palabras_top = [palabras_features[idx] for idx in top_indices_palabras]
-            palabras_clave_texto = ", ".join(palabras_top)
-        else:
-            palabras_clave_texto = "sin datos"
-            
-        nombres_clusters[i] = f"Eje #{i+1} ({palabras_clave_texto})"
-    
-    # Asignar nombres explicativos a la columna
-    df_ml['Cluster Name'] = df_ml['Cluster'].map(nombres_clusters)
-    
-    # Gráfico del resultado del modelo
-    cluster_counts = df_ml['Cluster Name'].value_counts().reset_index()
-    cluster_counts.columns = ['Eje Temático', 'Cantidad de Artículos']
-    
-    fig_cluster = px.bar(
-        cluster_counts, 
-        x='Cantidad de Artículos', 
-        y='Eje Temático', 
-        orientation='h',
-        title="Distribución de Artículos por Ejes Temáticos Detectados",
-        color='Eje Temático',
-        color_discrete_sequence=px.colors.qualitative.Pastel
-    )
-    fig_cluster.update_yaxes(autorange="reversed")
-    st.plotly_chart(fig_cluster, use_container_width=True)
-    
-    # Explorador de los clusters
-    with st.expander("🔍 Explorar artículos classified por la Inteligencia Artificial"):
-        cluster_ver = st.selectbox("Selecciona un eje temático para inspeccionar:", sorted(df_ml['Cluster Name'].unique()))
-        articulos_en_cluster = df_ml[df_ml['Cluster Name'] == cluster_ver][['Title', 'Source title', 'Year', 'Cited by']].head(8)
-        st.dataframe(articulos_en_cluster, use_container_width=True)
-else:
-    st.info("Se requieren al menos 5 artículos con la columna 'Abstract' completa para ejecutar el agrupamiento de Machine Learning.")
-
-st.markdown("---")
-
-# -------------------------------------------------------------
-# VISUALIZACIÓN BIBLIOMÉTRICA ORIGINAL (Estructura Blindada contra Indentación)
+# VISUALIZACIÓN BIBLIOMÉTRICA ORIGINAL
 # -------------------------------------------------------------
 st.header("📈 Análisis de Tendencias Básicas e Impacto")
 
@@ -236,10 +169,79 @@ with tab2:
         st.plotly_chart(fig_fuentes, use_container_width=True)
 
 with tab3:
-    # Se eliminan sub-columnas para evitar fallos de sangrado en servidores remotos
     autores = df_filtrado["Authors"].dropna().str.split(";").explode().str.strip().value_counts().head(10).reset_index()
     autores.columns = ["Autor", "Publicaciones"]
     fig_autores = px.bar(autores, x="Publicaciones", y="Autor", orientation='h', title="Top 10 Autores más Productivos del Corpus")
     fig_autores.update_yaxes(autorange="reversed")
     st.plotly_chart(fig_autores, use_container_width=True)
     
+    st.markdown("<br>", unsafe_allow_html=True)
+    
+    keywords = df_filtrado["Author Keywords"].dropna().str.split(";").explode().str.strip().value_counts().head(12).reset_index()
+    keywords.columns = ["Palabra Clave", "Frecuencia"]
+    fig_keys = px.bar(keywords, x="Frecuencia", y="Palabra Clave", orientation='h', title="Top 12 Palabras Clave más Frecuentes", color="Frecuencia", color_continuous_scale="Viridis")
+    fig_keys.update_yaxes(autorange="reversed")
+    st.plotly_chart(fig_keys, use_container_width=True)
+
+st.markdown("---")
+
+# -------------------------------------------------------------
+# 5 VISUALIZACIONES CON VALOR AGREGADO
+# -------------------------------------------------------------
+st.header("💎 Análisis Avanzado de Valor Agregado")
+st.write("Explora métricas avanzadas cruzando múltiples dimensiones del corpus académico.")
+
+v_tab1, v_tab2, v_tab3, v_tab4, v_tab5 = st.tabs([
+    "🎯 1. Antigüedad vs Impacto", 
+    "🔓 2. Acceso por Documento", 
+    "🌍 3. Concentración Institucional", 
+    "📦 4. Distribución de Calidad", 
+    "🔀 5. Intersección de Keywords"
+])
+
+with v_tab1:
+    df_scatter = df_filtrado.dropna(subset=['Year', 'Cited by']).copy()
+    fig_scatter = px.scatter(
+        df_scatter, x="Year", y="Cited by", color="Document Type",
+        hover_name="Title", size="Cited by", size_max=40,
+        title="Relación de Impacto (Citaciones) según el Año de Publicación"
+    )
+    st.plotly_chart(fig_scatter, use_container_width=True)
+    
+    st.markdown("""
+    <div class="value-box">
+        <b>💡 VALOR AGREGADO:</b> Identifica de forma inmediata los artículos 'estrella' (outliers). 
+        Permite comprobar visualmente si el impacto académico se concentra en investigaciones tempranas pioneras o si existen publicaciones recientes con un crecimiento de citaciones sumamente acelerado.
+    </div>
+    """, unsafe_allow_html=True)
+
+with v_tab2:
+    df_group = df_filtrado.copy()
+    df_group["Open Access"] = df_group["Open Access"].fillna("Cerrado / No especificado")
+    fig_group = px.histogram(
+        df_group, x="Document Type", color="Open Access", barmode="group",
+        title="Disponibilidad de Acceso Abierto por Tipo de Documento"
+    )
+    st.plotly_chart(fig_group, use_container_width=True)
+    
+    st.markdown("""
+    <div class="value-box">
+        <b>💡 VALOR AGREGADO:</b> Muestra la democratización del conocimiento científico. 
+        Permite evaluar si la literatura enfocada en ChatGPT es de libre lectura o está restringida por barreras de pago, mapeando la predisposición al Open Access entre artículos de revistas frente a conferencias.
+    </div>
+    """, unsafe_allow_html=True)
+
+with v_tab3:
+    df_aff = df_filtrado["Affiliations"].dropna().str.split(";").explode().str.strip().value_counts().head(15).reset_index()
+    df_aff.columns = ["Institución / Centro", "Cantidad"]
+    fig_tree = px.treemap(
+        df_aff, path=["Institución / Centro"], values="Cantidad",
+        title="Distribución Geográfica e Institucional del Conocimiento",
+        color="Cantidad", color_continuous_scale="Teal"
+    )
+    st.plotly_chart(fig_tree, use_container_width=True)
+    
+    st.markdown("""
+    <div class="value-box">
+        <b>💡 VALOR AGREGADO:</b> Revela el mapa de poder institucional. 
+
