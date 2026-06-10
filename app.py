@@ -56,6 +56,14 @@ st.markdown("""
     margin: 4px;
     border: 1px solid #047857;
 }
+.value-box {
+    background-color: #0F172A; 
+    padding: 15px; 
+    border-radius: 8px; 
+    border-left: 5px solid #3B82F6;
+    margin-top: 10px;
+    margin-bottom: 20px;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -152,7 +160,7 @@ if len(df_ml) >= 5:
     nombres_clusters = {}
     
     for i in range(num_clusters):
-        indices_cluster = np.where(df_ml['Cluster'] == i)[0]
+        indices_cluster = np.where(df_ml['Cluster'] == i)
         
         if len(indices_cluster) > 0:
             promedio_tfidf = np.asarray(X[indices_cluster].mean(axis=0)).ravel()
@@ -194,22 +202,20 @@ else:
 st.markdown("---")
 
 # -------------------------------------------------------------
-# VISUALIZACIÓN BIBLIOMÉTRICA OPTIMIZADA (No redundante)
+# VISUALIZACIÓN BIBLIOMÉTRICA ORIGINAL
 # -------------------------------------------------------------
-st.header("📈 Análisis de Tendencias e Impacto")
+st.header("📈 Análisis de Tendencias Básicas e Impacto")
 
 tab1, tab2, tab3 = st.tabs(["📊 Producción y Acceso", "🏆 Impacto y Fuentes", "🔑 Autores y Keywords"])
 
 with tab1:
     col_t1_1, col_t1_2 = st.columns(2)
-    
     with col_t1_1:
         articulos_anio = df_filtrado["Year"].value_counts().sort_index().reset_index()
         articulos_anio.columns = ["Año", "Publicaciones"]
         fig_linea = px.line(articulos_anio, x="Año", y="Publicaciones", markers=True, title="Evolución de la Producción Científica por Año")
         fig_linea.update_traces(line_color='#FF4B4B', line_width=3)
         st.plotly_chart(fig_linea, use_container_width=True)
-        
     with col_t1_2:
         open_access = df_filtrado["Open Access"].fillna("No especificado").value_counts().reset_index()
         open_access.columns = ["Estatus", "Total"]
@@ -218,12 +224,10 @@ with tab1:
 
 with tab2:
     col_t2_1, col_t2_2 = st.columns(2)
-    
     with col_t2_1:
         st.subheader("🏆 Artículos de Mayor Impacto (Top 10 Citados)")
         top_citados = df_filtrado[["Title", "Cited by"]].sort_values(by="Cited by", ascending=False).head(10)
         st.dataframe(top_citados, use_container_width=True)
-        
     with col_t2_2:
         fuentes = df_filtrado["Source title"].value_counts().head(10).reset_index()
         fuentes.columns = ["Revista / Conferencia", "Artículos"]
@@ -233,14 +237,10 @@ with tab2:
 
 with tab3:
     col_t3_1, col_t3_2 = st.columns(2)
-    
     with col_t3_1:
         autores = df_filtrado["Authors"].dropna().str.split(";").explode().str.strip().value_counts().head(10).reset_index()
         autores.columns = ["Autor", "Publicaciones"]
         fig_autores = px.bar(autores, x="Publicaciones", y="Autor", orientation='h', title="Top 10 Autores más Productivos del Corpus")
         fig_autores.update_yaxes(autorange="reversed")
         st.plotly_chart(fig_autores, use_container_width=True)
-        
     with col_t3_2:
-        keywords = df_filtrado["Author Keywords"].dropna().str.split(";").explode().str.strip().value_counts().head(12).reset_index()
-
