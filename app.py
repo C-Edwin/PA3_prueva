@@ -13,7 +13,7 @@ st.set_page_config(
 )
 
 # -------------------------------------------------------------
-# ESTILOS CSS PERSONALIZADOS (Punto 2: Alto contraste y legibilidad)
+# ESTILOS CSS PERSONALIZADOS (Alto contraste y legibilidad)
 # -------------------------------------------------------------
 st.markdown("""
 <style>
@@ -129,7 +129,7 @@ col4.metric("Tipos de Fuente", df_filtrado["Source title"].nunique())
 st.markdown("---")
 
 # -------------------------------------------------------------
-# SECCIÓN DE MACHINE LEARNING (¡Esencial para tu entrega!)
+# SECCIÓN DE MACHINE LEARNING (Clustering + Extractor Automático)
 # -------------------------------------------------------------
 st.header("🧠 Módulo de Machine Learning: Agrupamiento Temático (Clustering)")
 st.write("Aplicamos un modelo no supervisado **K-Means** sobre los resúmenes (`Abstract`) para descubrir los frentes de investigación ocultos.")
@@ -147,8 +147,25 @@ if len(df_ml) >= 5:
     kmeans = KMeans(n_clusters=num_clusters, random_state=42, n_init=10)
     df_ml['Cluster'] = kmeans.fit_predict(X)
     
-    # Mapear nombres entendibles a los clusters basados en sus palabras más comunes
-    df_ml['Cluster Name'] = df_ml['Cluster'].apply(lambda x: f"Eje de Investigación #{x+1}")
+    # Descubrir palabras clave por cada grupo automáticamente
+    palabras_features = vectorizer.get_feature_names_out()
+    nombres_clusters = {}
+    
+    for i in range(num_clusters):
+        indices_cluster = np.where(df_ml['Cluster'] == i)[0]
+        
+        if len(indices_cluster) > 0:
+            promedio_tfidf = np.asarray(X[indices_cluster].mean(axis=0)).ravel()
+            top_indices_palabras = promedio_tfidf.argsort()[-4:][::-1]
+            palabras_top = [palabras_features[idx] for idx in top_indices_palabras]
+            palabras_clave_texto = ", ".join(palabras_top)
+        else:
+            palabras_clave_texto = "sin datos"
+            
+        nombres_clusters[i] = f"Eje #{i+1} ({palabras_clave_texto})"
+    
+    # Asignar nombres explicativos a la columna
+    df_ml['Cluster Name'] = df_ml['Cluster'].map(nombres_clusters)
     
     # Gráfico del resultado del modelo
     cluster_counts = df_ml['Cluster Name'].value_counts().reset_index()
@@ -159,10 +176,11 @@ if len(df_ml) >= 5:
         x='Cantidad de Artículos', 
         y='Eje Temático', 
         orientation='h',
-        title="Distribución de Artículos por Ejes Temáticos de ML",
+        title="Distribución de Artículos por Ejes Temáticos Detectados",
         color='Eje Temático',
         color_discrete_sequence=px.colors.qualitative.Pastel
     )
+    fig_cluster.update_yaxes(autorange="reversed")
     st.plotly_chart(fig_cluster, use_container_width=True)
     
     # Explorador de los clusters
@@ -176,7 +194,7 @@ else:
 st.markdown("---")
 
 # -------------------------------------------------------------
-# VISUALIZACIÓN BIBLIOMÉTRICA OPTIMIZADA (Punto 1: No redundante)
+# VISUALIZACIÓN BIBLIOMÉTRICA OPTIMIZADA (No redundante)
 # -------------------------------------------------------------
 st.header("📈 Análisis de Tendencias e Impacto")
 
@@ -186,7 +204,6 @@ with tab1:
     col_t1_1, col_t1_2 = st.columns(2)
     
     with col_t1_1:
-        # Tendencia temporal (Línea interactiva en lugar de barras)
         articulos_anio = df_filtrado["Year"].value_counts().sort_index().reset_index()
         articulos_anio.columns = ["Año", "Publicaciones"]
         fig_linea = px.line(articulos_anio, x="Año", y="Publicaciones", markers=True, title="Evolución de la Producción Científica por Año")
@@ -194,7 +211,6 @@ with tab1:
         st.plotly_chart(fig_linea, use_container_width=True)
         
     with col_t1_2:
-        # Distribución de Open Access (Gráfico de Pastel)
         open_access = df_filtrado["Open Access"].fillna("No especificado").value_counts().reset_index()
         open_access.columns = ["Estatus", "Total"]
         fig_pie = px.pie(open_access, values="Total", names="Estatus", title="Distribución de Artículos en Acceso Abierto (Open Access)", color_discrete_sequence=px.colors.sequential.RdBu)
@@ -204,13 +220,11 @@ with tab2:
     col_t2_1, col_t2_2 = st.columns(2)
     
     with col_t2_1:
-        # Top 10 más citados (Tabla limpia y estilizada)
         st.subheader("🏆 Artículos de Mayor Impacto (Top 10 Citados)")
         top_citados = df_filtrado[["Title", "Cited by"]].sort_values(by="Cited by", ascending=False).head(10)
         st.dataframe(top_citados, use_container_width=True)
         
     with col_t2_2:
-        # Revistas/Conferencias Top (Barras Horizontales para evitar colisión de texto)
         fuentes = df_filtrado["Source title"].value_counts().head(10).reset_index()
         fuentes.columns = ["Revista / Conferencia", "Artículos"]
         fig_fuentes = px.bar(fuentes, x="Artículos", y="Revista / Conferencia", orientation='h', title="Top 10 Canales de Publicación más Frecuentes")
@@ -221,7 +235,6 @@ with tab3:
     col_t3_1, col_t3_2 = st.columns(2)
     
     with col_t3_1:
-        # Autores productivos
         autores = df_filtrado["Authors"].dropna().str.split(";").explode().str.strip().value_counts().head(10).reset_index()
         autores.columns = ["Autor", "Publicaciones"]
         fig_autores = px.bar(autores, x="Publicaciones", y="Autor", orientation='h', title="Top 10 Autores más Productivos del Corpus")
@@ -229,11 +242,5 @@ with tab3:
         st.plotly_chart(fig_autores, use_container_width=True)
         
     with col_t3_2:
-        # Palabras clave más frecuentes
         keywords = df_filtrado["Author Keywords"].dropna().str.split(";").explode().str.strip().value_counts().head(12).reset_index()
-        keywords.columns = ["Palabra Clave", "Frecuencia"]
-        fig_keys = px.bar(keywords, x="Frecuencia", y="Palabra Clave", orientation='h', title="Top 12 Palabras Clave más Frecuentes", color="Frecuencia", color_continuous_scale="Viridis")
-        fig_keys.update_yaxes(autorange="reversed")
-        st.plotly_chart(fig_keys, use_container_width=True)
 
-# Explorador General de la Tabla Completa
