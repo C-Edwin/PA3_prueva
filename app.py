@@ -162,7 +162,7 @@ if len(df_ml) >= 5:
     for i in range(num_clusters):
         indices_cluster = np.where(df_ml['Cluster'] == i)
         
-        if len(indices_cluster) > 0:
+        if len(indices_cluster)[0] > 0:
             promedio_tfidf = np.asarray(X[indices_cluster].mean(axis=0)).ravel()
             top_indices_palabras = promedio_tfidf.argsort()[-4:][::-1]
             palabras_top = [palabras_features[idx] for idx in top_indices_palabras]
@@ -244,3 +244,4 @@ with tab3:
         fig_autores.update_yaxes(autorange="reversed")
         st.plotly_chart(fig_autores, use_container_width=True)
     with col_t3_2:
+
