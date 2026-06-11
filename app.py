@@ -11,7 +11,7 @@ st.set_page_config(
 )
 
 # -------------------------------------------------------------
-# ESTILOS CSS PERSONALIZADOS (Alto contraste y legibilidad)
+# ESTILOS CSS PERSONALIZADOS (Optimizado para máxima legibilidad)
 # -------------------------------------------------------------
 st.markdown("""
 <style>
@@ -54,13 +54,17 @@ st.markdown("""
     margin: 4px;
     border: 1px solid #047857;
 }
+/* Caja de Valor Agregado Corregida: Fondo Claro y Letra Negra para máxima lectura */
 .value-box {
-    background-color: #0F172A; 
-    padding: 15px; 
+    background-color: #F1F5F9; 
+    color: #0F172A;
+    padding: 18px; 
     border-radius: 8px; 
-    border-left: 5px solid #3B82F6;
-    margin-top: 10px;
-    margin-bottom: 20px;
+    border-left: 6px solid #FF4B4B;
+    margin-top: 15px;
+    margin-bottom: 25px;
+    font-size: 16px;
+    line-height: 1.5;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -185,7 +189,7 @@ with tab3:
 
 st.markdown("---")
 # -------------------------------------------------------------
-# 5 VISUALIZACIONES CON VALOR AGREGADO
+# 5 VISUALIZACIONES CON VALOR AGREGADO (LETRA CLARA Y LEGUIBLE)
 # -------------------------------------------------------------
 st.header("💎 Análisis Avanzado de Valor Agregado")
 st.write("Explora métricas avanzadas cruzando múltiples dimensiones del corpus académico.")
@@ -193,8 +197,8 @@ st.write("Explora métricas avanzadas cruzando múltiples dimensiones del corpus
 v_tab1, v_tab2, v_tab3, v_tab4, v_tab5 = st.tabs([
     "🎯 1. Antigüedad vs Impacto", 
     "🔓 2. Acceso por Documento", 
-    "🌍 3. Concentración Institucional", 
-    "📦 4. Distribución de Calidad", 
+    "📈 3. Impacto de Acceso Abierto", 
+    "⏳ 4. Evolución del Impacto", 
     "🔀 5. Intersección de Keywords"
 ])
 
@@ -231,36 +235,41 @@ with v_tab2:
     """, unsafe_allow_html=True)
 
 with v_tab3:
-    df_aff = df_filtrado["Affiliations"].dropna().str.split(";").explode().str.strip().value_counts().head(15).reset_index()
-    df_aff.columns = ["Institución / Centro", "Cantidad"]
-    fig_tree = px.treemap(
-        df_aff, path=["Institución / Centro"], values="Cantidad",
-        title="Distribución Geográfica e Institucional del Conocimiento",
-        color="Cantidad", color_continuous_scale="Teal"
+    df_oa_impact = df_filtrado.copy()
+    df_oa_impact["Open Access"] = df_oa_impact["Open Access"].fillna("Cerrado / No especificado")
+    df_oa_grouped = df_oa_impact.groupby("Open Access")["Cited by"].mean().reset_index()
+    df_oa_grouped.columns = ["Estatus de Acceso", "Promedio de Citaciones"]
+    
+    fig_oa_bar = px.bar(
+        df_oa_grouped, x="Estatus de Acceso", y="Promedio de Citaciones",
+        color="Estatus de Acceso", color_discrete_sequence=px.colors.qualitative.Set2,
+        title="Promedio de Citas Recibidas: Artículos Abiertos vs. Cerrados"
     )
-    st.plotly_chart(fig_tree, use_container_width=True)
+    st.plotly_chart(fig_oa_bar, use_container_width=True)
     
     st.markdown("""
     <div class="value-box">
-        <b>💡 VALOR AGREGADO:</b> Revela el mapa de poder institucional. 
-        Permite identificar de un vistazo qué universidades, centros de investigación o países están liderando la financiación y la producción científica en la intersección de IA y educación en software.
+        <b>💡 VALOR AGREGADO:</b> Analiza la ventaja de citación del conocimiento abierto. 
+        Demuestra numéricamente si publicar en formato Open Access le otorga mayor visibilidad y tasa de citación a las investigaciones sobre ChatGPT frente a los canales tradicionales de pago.
     </div>
     """, unsafe_allow_html=True)
 
 with v_tab4:
-    top_5_sources = df_filtrado["Source title"].value_counts().head(5).index.tolist()
-    df_box = df_filtrado[df_filtrado["Source title"].isin(top_5_sources)].copy()
+    df_year_citations = df_filtrado.groupby("Year")["Cited by"].sum().reset_index()
+    df_year_citations.columns = ["Año", "Total Citaciones Acumuladas"]
     
-    fig_box = px.box(
-        df_box, x="Source title", y="Cited by", color="Source title",
-        title="Dispersión y Variabilidad de Citaciones en los Canales Principales"
+    fig_area_citations = px.area(
+        df_year_citations, x="Año", y="Total Citaciones Acumuladas",
+        title="Evolución Histórica de Citaciones Totales por Año",
+        markers=True
     )
-    st.plotly_chart(fig_box, use_container_width=True)
+    fig_area_citations.update_traces(line_color='#FF4B4B')
+    st.plotly_chart(fig_area_citations, use_container_width=True)
     
     st.markdown("""
     <div class="value-box">
-        <b>💡 VALOR AGREGADO:</b> Muestra la consistencia del impacto científico. 
-        A diferencia de los promedios simples, el gráfico de cajas expone si el prestigio de un canal de publicación es constante y distribuido, o si depende exclusivamente de un único artículo hiper-citado.
+        <b>💡 VALOR AGREGADO:</b> Muestra la velocidad de absorción del conocimiento en la comunidad científica. 
+        Permite identificar el año exacto en que las investigaciones sobre ChatGPT se convirtieron en un pilar de referencia masivo para otros académicos del mundo de la programación.
     </div>
     """, unsafe_allow_html=True)
 
@@ -312,3 +321,4 @@ with col_pie1:
     st.markdown("**Desarrollado por:** Grupo 1")
 with col_pie2:
     st.markdown("<div style='text-align: right;'><i>Entregable Académico - Fundamentos de Machine Learning</i></div>", unsafe_allow_html=True)
+
